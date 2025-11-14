@@ -1,0 +1,91 @@
+---
+title: "WalmartSales"
+format: pdf
+editor: visual
+---
+
+## Libraries and Data
+
+```{r}
+
+library(ggplot2)
+library(tidyverse)
+library(tidymodels)
+library(patchwork)
+library(tune)
+library(vroom)
+library(dplyr)
+library(embed)
+library(kknn)
+
+
+train <- vroom('./train.csv')
+test <- vroom('./test.csv')
+features <- vroom("./features.csv")
+stores   <- vroom("./stores.csv")
+
+
+```
+
+## EDA Stuff
+
+```{r}
+
+# how many stores / depts / weeks?
+train %>%
+  summarise(
+    n_rows   = n(),
+    n_store  = n_distinct(Store),
+    n_dept   = n_distinct(Dept),
+    min_date = min(Date),
+    max_date = max(Date)
+  )
+
+# sales summary
+train %>%
+  summarise(
+    mean_sales = mean(Weekly_Sales),
+    median_sales = median(Weekly_Sales),
+    min_sales = min(Weekly_Sales),
+    max_sales = max(Weekly_Sales)
+  )
+
+# check for negative sales
+train %>%
+  filter(Weekly_Sales < 0) %>%
+  count()
+
+
+features %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  t()
+
+
+```
+
+```{r}
+
+store_example <- 1
+dept_example  <- 1
+
+train %>%
+  filter(Store == store_example, Dept == dept_example) %>%
+  ggplot(aes(x = Date, y = Weekly_Sales, color = IsHoliday)) +
+  geom_line() +
+  labs(title = paste("Store", store_example, "- Dept", dept_example),
+       y = "Weekly Sales", x = "Date")
+
+ggplot(train, aes(x = Weekly_Sales)) +
+  geom_histogram(bins = 50) +
+  labs(title = "Distribution of Weekly Sales")
+
+
+
+```
+
+We've got some issues, not super clear from the code I was able to produce above.\
+BUT\
+We need to figure out a good way to join data together (join features to train on store and date)\
+There are some stores that only have like 5 data points to use in predicting
+
+And there are holes in the data where we need to figure out what to do with. maybe imputation or something.
