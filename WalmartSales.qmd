@@ -117,3 +117,128 @@ test_joined <- test %>%
   left_join(features_clean, by = c("Store", "Date"))
 
 ```
+
+## Prophet Stuff
+
+```{r}
+
+library(prophet)
+
+## Choose store & dept
+store <- 12
+dept  <- 12
+
+## Filter train
+sd_train <- train_joined %>%
+  filter(Store == store, Dept == dept) %>%
+  rename(y = Weekly_Sales, ds = Date)
+
+## Filter test
+sd_test <- test_joined %>%
+  filter(Store == store, Dept == dept) %>%
+  rename(ds = Date)
+
+## Impute regressors ----------------------------------------
+# median (or mean) from TRAIN ONLY
+unemp_med <- median(sd_train$Unemployment, na.rm = TRUE)
+temp_med  <- median(sd_train$Temperature,  na.rm = TRUE)
+tm_med    <- median(sd_train$TotalMarkdown, na.rm = TRUE)
+
+sd_train <- sd_train %>%
+  mutate(
+    Unemployment  = ifelse(is.na(Unemployment)  | is.nan(Unemployment),  unemp_med, Unemployment),
+    Temperature   = ifelse(is.na(Temperature)   | is.nan(Temperature),   temp_med,  Temperature),
+    TotalMarkdown = ifelse(is.na(TotalMarkdown) | is.nan(TotalMarkdown), tm_med,    TotalMarkdown)
+  )
+
+sd_test <- sd_test %>%
+  mutate(
+    Unemployment  = ifelse(is.na(Unemployment)  | is.nan(Unemployment),  unemp_med, Unemployment),
+    Temperature   = ifelse(is.na(Temperature)   | is.nan(Temperature),   temp_med,  Temperature),
+    TotalMarkdown = ifelse(is.na(TotalMarkdown) | is.nan(TotalMarkdown), tm_med,    TotalMarkdown)
+  )
+
+
+prophet_model <- prophet() %>%
+  add_regressor("Unemployment") %>%
+  add_regressor("TotalMarkdown") %>%
+  add_regressor("Temperature") %>%
+  fit.prophet(df = sd_train)
+
+
+
+## Predict Using Fitted prophet Model
+fitted_vals <- predict(prophet_model, df=sd_train) #For Plotting Fitted Values
+test_preds <- predict(prophet_model, df=sd_test) #Predictions are called "yhat"
+
+## Plot Fitted and Forecast on Same Plot
+plot1 <- ggplot() +
+  geom_line(data = sd_train, mapping = aes(x = ds, y = y, color = "Data")) +
+  geom_line(data = fitted_vals, mapping = aes(x = as.Date(ds), y = yhat, color =
+                                                "Fitted")) +
+  geom_line(data = test_preds, mapping = aes(x = as.Date(ds), y = yhat, color =
+                                               "Forecast")) +
+  scale_color_manual(values = c("Data" = "black", "Fitted" = "blue", "Forecast" =
+                                  "red")) +
+  labs(color="")
+
+
+## Choose store & dept
+store <- 16
+dept  <- 16
+
+## Filter train
+sd_train <- train_joined %>%
+  filter(Store == store, Dept == dept) %>%
+  rename(y = Weekly_Sales, ds = Date)
+
+## Filter test
+sd_test <- test_joined %>%
+  filter(Store == store, Dept == dept) %>%
+  rename(ds = Date)
+
+## Impute regressors ----------------------------------------
+# median (or mean) from TRAIN ONLY
+unemp_med <- median(sd_train$Unemployment, na.rm = TRUE)
+temp_med  <- median(sd_train$Temperature,  na.rm = TRUE)
+tm_med    <- median(sd_train$TotalMarkdown, na.rm = TRUE)
+
+sd_train <- sd_train %>%
+  mutate(
+    Unemployment  = ifelse(is.na(Unemployment)  | is.nan(Unemployment),  unemp_med, Unemployment),
+    Temperature   = ifelse(is.na(Temperature)   | is.nan(Temperature),   temp_med,  Temperature),
+    TotalMarkdown = ifelse(is.na(TotalMarkdown) | is.nan(TotalMarkdown), tm_med,    TotalMarkdown)
+  )
+
+sd_test <- sd_test %>%
+  mutate(
+    Unemployment  = ifelse(is.na(Unemployment)  | is.nan(Unemployment),  unemp_med, Unemployment),
+    Temperature   = ifelse(is.na(Temperature)   | is.nan(Temperature),   temp_med,  Temperature),
+    TotalMarkdown = ifelse(is.na(TotalMarkdown) | is.nan(TotalMarkdown), tm_med,    TotalMarkdown)
+  )
+
+
+prophet_model <- prophet() %>%
+  add_regressor("Unemployment") %>%
+  add_regressor("TotalMarkdown") %>%
+  add_regressor("Temperature") %>%
+  fit.prophet(df = sd_train)
+
+
+
+## Predict Using Fitted prophet Model
+fitted_vals <- predict(prophet_model, df=sd_train) #For Plotting Fitted Values
+test_preds <- predict(prophet_model, df=sd_test) #Predictions are called "yhat"
+
+plot2 <- ggplot() +
+  geom_line(data = sd_train, mapping = aes(x = ds, y = y, color = "Data")) +
+  geom_line(data = fitted_vals, mapping = aes(x = as.Date(ds), y = yhat, color =
+                                                "Fitted")) +
+  geom_line(data = test_preds, mapping = aes(x = as.Date(ds), y = yhat, color =
+                                               "Forecast")) +
+  scale_color_manual(values = c("Data" = "black", "Fitted" = "blue", "Forecast" =
+                                  "red")) +
+  labs(color="")
+
+plot1 + plot2
+```
